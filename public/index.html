@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calculate Distance Between Locations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        /* Add your CSS styles here */
+        #map {
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+<h1>Calculate Distance Between Locations</h1>
+<div id="map" style="height: 500px;"></div>
+<button onclick="calculateDistance()">Calculate Distance</button>
+<p id="result"></p>
+
+<script>
+    var map;
+    var marker;
+    var userLocation;
+
+    function initMap() {
+        map = L.map('map').setView([-1.2921, 36.8219], 7); // Center the map on Kenya
+
+        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+            attribution: '&copy; <a href="https://www.mapbox.com/feedback/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken: 'pk.eyJ1IjoidHJ5a2UiLCJhIjoiY2xrbGlyMjQ0MDc5NjNkcGwwb3prYmt3MSJ9.naqDKdIXOubBnAsOAN_aVQ' // Replace with your actual Mapbox access token
+        }).addTo(map);
+
+        map.on('click', function (e) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker(e.latlng).addTo(map);
+        });
+
+        getLocation();
+    }
+
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                userLocation = L.latLng(latitude, longitude);
+                map.setView([latitude, longitude], 13);
+                L.marker(userLocation).addTo(map);
+            }, function (error) {
+                alert('Error getting your location. Please select your location manually on the map.');
+            });
+        } else {
+            alert('Geolocation is not supported by your browser. Please select your location manually on the map.');
+        }
+    }
+
+    function calculateDistance() {
+        if (!marker) {
+            alert('Please select another location on the map.');
+            return;
+        }
+
+        const location2 = marker.getLatLng();
+
+        const data = {
+            latitude1: userLocation.lat,
+            longitude1: userLocation.lng,
+            latitude2: location2.lat,
+            longitude2: location2.lng
+        };
+
+        fetch('/calculate_distance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                const resultElement = document.getElementById('result');
+                resultElement.innerHTML = `Distance: ${data.distance.toFixed(2)} kilometers`;
+            })
+            .catch(error => console.error('Error:', error));
+    }
+</script>
+<!--<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>-->
+
+<!--<script>-->
+<!--    var map = L.map('map').setView([51.505, -0.09], 13);-->
+<!--    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);-->
+<!--</script>-->
+</body>
+</html>
